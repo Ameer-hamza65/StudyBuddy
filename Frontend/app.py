@@ -5,7 +5,7 @@ import os
 
 # Configuration
 BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
-st.set_page_config(page_title="Book Learning Assistant", layout="wide")
+st.set_page_config(page_title="StudyBuddy", layout="wide")
 
 # Initialize session state
 def init_session():
@@ -19,7 +19,7 @@ def init_session():
 init_session()
 
 # UI Components
-st.title("📚 Book Learning Assistant")
+st.title("📚 StudyBuddy")
 st.subheader("Learn from books and test your knowledge")
 
 # Sidebar for book upload
