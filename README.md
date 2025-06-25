@@ -2,15 +2,12 @@
 **StudyBuddy** is an AI-powered learning companion built with FastAPI and Streamlit. It integrates two powerful modes:
 
 **How to Run**
-1. cd ./Backend <br>
-pip install -r requirements.txt  
-2. cd ./Frontend <br>
-pip install -r requirements.txt
-3. cd ./Backend <br>
-uvicorn app.main:app --reload
+1. pip install -r requirements.txt  
+2. cd ./Backend <br>
+3. uvicorn app.main:app --reload
 4. Open a new terminal and than <br>
 5. cd ./Frontend <br>
-streamlit run app.py
+6. streamlit run app.py
 
 1. Learning Route <br>
 Retrieval-Augmented Generation (RAG) pipeline using LangChain and Gemini embeddings.
