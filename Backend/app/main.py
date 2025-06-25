@@ -5,7 +5,9 @@ from app.services.quiz_service import QuizService
 from app.utils.file_processing import process_pdf, chunk_text
 from app.utils.config import settings
 import time
-
+import logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 app = FastAPI()
 rag_service = RAGService()
 quiz_service = QuizService()
@@ -14,23 +16,35 @@ book_context = ""
 @app.post("/upload-book/")
 async def upload_book(file: UploadFile):
     global book_context
+    logger.info(f"Received file upload: {file.filename}")
     # Improved file validation
     if not (file.filename and file.filename.lower().endswith('.pdf')):
         raise HTTPException(400, "Only PDF files are supported")
     
     try:
         file_bytes = await file.read()
+        logger.info(f"File size: {len(file_bytes)} bytes")
         
         # Validate PDF magic number
         if file_bytes[:4] != b'%PDF':
             raise HTTPException(400, "Invalid PDF file format")
         
+        logger.info("Processing PDF...")
         text = process_pdf(file_bytes)
+        logger.info(f"Processed text length: {len(text)} characters")
+        
+        logger.info("Chunking text...")
         chunks = chunk_text(text, settings.chunk_size, settings.chunk_overlap)
+        logger.info(f"Created {len(chunks)} text chunks")
+        
+        logger.info("Initializing QA system...")
         rag_service.initialize_qa_system(chunks)
+        logger.info("QA system initialized")
+        
         book_context = text
         return {"message": "Book processed successfully"}
     except Exception as e:
+        logger.error(f"Error processing book: {str(e)}")
         raise HTTPException(500, f"Error processing book: {str(e)}")
 
 @app.post("/ask/")
