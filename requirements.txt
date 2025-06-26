@@ -5,8 +5,8 @@ fastapi
 uvicorn[standard]
 langchain
 langchain-google-genai
-chromadb
 pypdf
+faiss-cpu
 pydantic-settings
 python-dotenv
 python-multipart

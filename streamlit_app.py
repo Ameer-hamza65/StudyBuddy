@@ -83,14 +83,11 @@ class RAGService:
             model=settings.embed_model
         )
     
+    # In your RAGService class:
     def initialize_qa_system(self, chunks: list[str]):
-        """Initialize vector store and QA system in memory"""
-        logger.info("Initializing QA system...")
-        # Create in-memory vector store without persistence
-        self.vector_store = Chroma.from_texts(
-            chunks, 
-            self.embeddings
-        )
+        """Initialize vector store using FAISS instead of Chroma"""
+        from langchain_community.vectorstores import FAISS
+        self.vector_store = FAISS.from_texts(chunks, self.embeddings)  # FAISS is SQLite-free
         logger.info("Vector store created")
         
         llm = ChatGoogleGenerativeAI(
