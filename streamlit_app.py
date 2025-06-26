@@ -230,8 +230,8 @@ class QuizService:
         }
 
 # Streamlit App
-st.set_page_config(page_title="Book Learning Assistant", layout="wide")
-st.title("📚 Book Learning Assistant")
+st.set_page_config(page_title="StudyBuddy", layout="wide")
+st.title("📚 StudyBuddy")
 st.subheader("Learn from books and test your knowledge")
 
 # Initialize session state
