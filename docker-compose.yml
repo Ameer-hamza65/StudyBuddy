@@ -1,0 +1,26 @@
+services:
+  backend:
+    build:
+      # context:   # Point to backend directory
+      dockerfile: Backend/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - CHROMA_PERSIST_DIR=/app/chroma_db
+    volumes:
+      - chroma_data:/app/chroma_db
+
+  frontend:
+    build:
+      # context:   # Point to frontend directory
+      dockerfile: Frontend/Dockerfile
+    ports:
+      - "8501:8501"
+    environment:
+      - BACKEND_URL=http://backend:8000
+    depends_on:
+      - backend
+
+volumes:
+  chroma_data:
