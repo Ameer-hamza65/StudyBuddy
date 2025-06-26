@@ -6,24 +6,21 @@ import re
 import random
 import time
 import logging
+import fitz  # PyMuPDF
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_community.vectorstores import Chroma
 from langchain.chains import RetrievalQA
 from langchain.prompts import PromptTemplate
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_community.document_loaders import PyPDFLoader
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Set Google API key
-# if 'GOOGLE_API_KEY' in st.secrets:
-os.environ["GOOGLE_API_KEY"] = st.secrets["GOOGLE_API_KEY"]
-
-
-
+# os.environ["GOOGLE_API_KEY"] = st.secrets["GOOGLE_API_KEY"]
+os.environ["GOOGLE_API_KEY"]='AIzaSyCmhSlMWdIkW9SsxMWkLZCAsB8p0trsZyE'
 # Configuration
 class Settings:
     embed_model = "models/embedding-001"
@@ -33,40 +30,30 @@ class Settings:
 
 settings = Settings()
 
-# PDF Processing
+# PDF Processing with PyMuPDF as primary
 def process_pdf(file_bytes: bytes) -> str:
-    """Extract and process text from PDF bytes"""
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
-        tmp.write(file_bytes)
-        tmp_path = tmp.name
-    
+    """Extract and process text from PDF bytes using PyMuPDF"""
     try:
-        loader = PyPDFLoader(tmp_path)
-        pages = loader.load_and_split()
-        full_text = "\n\n".join([p.page_content for p in pages])
+        # Open PDF directly from bytes
+        doc = fitz.open(stream=file_bytes, filetype="pdf")
+        text = ""
+        
+        for page in doc:
+            text += page.get_text() + "\n\n"
         
         # Clean up text
-        full_text = re.sub(r'\s+', ' ', full_text)  # Replace multiple spaces
-        full_text = re.sub(r'-\n', '', full_text)  # Remove hyphenated line breaks
+        text = re.sub(r'\s+', ' ', text)  # Replace multiple spaces
+        text = re.sub(r'-\n', '', text)  # Remove hyphenated line breaks
         
         # Validate we extracted text
-        if len(full_text.strip()) < 100:
+        if len(text.strip()) < 100:
             raise ValueError("PDF text extraction failed - document may be scanned or encrypted")
             
-        return full_text
+        return text
     except Exception as e:
-        logger.error(f"Error processing PDF: {str(e)}")
-        # Try fallback with PyMuPDF
+        logger.error(f"PyMuPDF failed: {str(e)}. Trying fallback...")
+        # Fallback to simple PDF extraction
         try:
-            import fitz  # PyMuPDF
-            doc = fitz.open(tmp_path)
-            text = ""
-            for page in doc:
-                text += page.get_text()
-            return text
-        except ImportError:
-            logger.error("PyMuPDF not installed. Using simple extraction")
-            # Simple fallback
             from pypdf import PdfReader
             from io import BytesIO
             reader = PdfReader(BytesIO(file_bytes))
@@ -75,13 +62,8 @@ def process_pdf(file_bytes: bytes) -> str:
                 text += page.extract_text() + "\n\n"
             return text
         except Exception as fallback_e:
-            logger.error(f"PyMuPDF failed: {str(fallback_e)}")
-            raise
-    finally:
-        try:
-            os.unlink(tmp_path)
-        except:
-            pass
+            logger.error(f"Fallback extraction failed: {str(fallback_e)}")
+            raise RuntimeError("PDF processing failed with all methods")
 
 def chunk_text(text: str, chunk_size: int, chunk_overlap: int) -> list[str]:
     """Split text into manageable chunks"""
@@ -295,6 +277,7 @@ with st.sidebar:
                     st.session_state.rag_service.initialize_qa_system(chunks)
                     st.session_state.book_uploaded = True
                     st.success("Book processed successfully!")
+                    st.info(f"Processed {len(text)} characters in {len(chunks)} chunks")
                 except Exception as e:
                     st.error(f"Error: {str(e)}")
                     logger.exception("Book processing error")

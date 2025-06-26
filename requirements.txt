@@ -13,3 +13,5 @@ python-multipart
 langchain_community
 pymupdf
 fitz
+frontend
+tools
