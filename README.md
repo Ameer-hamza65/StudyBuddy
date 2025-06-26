@@ -1,7 +1,8 @@
 ****📘 Project Overview: StudyBuddy**** <br>
 **StudyBuddy** is an AI-powered learning companion built with FastAPI and Streamlit. It integrates two powerful modes:
 
-You can try the StudyBuddy here:
+You can try the StudyBuddy here: <br>
+just upload the pdf from the top left corner <br>
 https://studybuddyforyou.streamlit.app/
 
 **How to Run**
