@@ -9,7 +9,6 @@ import logging
 import fitz  # PyMuPDF
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
-from langchain_community.vectorstores import Chroma
 from langchain.chains import RetrievalQA
 from langchain.prompts import PromptTemplate
 from langchain_text_splitters import RecursiveCharacterTextSplitter
