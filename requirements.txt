@@ -15,5 +15,3 @@ pymupdf
 fitz
 frontend
 tools
-protobuf==3.20.3
-distutils
