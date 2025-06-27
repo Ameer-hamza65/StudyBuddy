@@ -25,10 +25,10 @@ class QuizData(BaseModel):
 
 class QuizService:
     def __init__(self):
-        self.quizzes = {}
+        self.quizzes = {} 
         self.llm = ChatGoogleGenerativeAI(
             model=settings.llm_model,
-            temperature=0.7
+            temperature=0.7 
         )
         self.setup_chains()
 
