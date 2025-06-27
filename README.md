@@ -1,6 +1,20 @@
 ****📘 Project Overview: StudyBuddy**** <br>
 **StudyBuddy** is an AI-powered learning companion built with FastAPI and Streamlit. It integrates two powerful modes:
 
+1. Learning Route <br>
+Retrieval-Augmented Generation (RAG) pipeline using LangChain and Gemini embeddings.
+
+Users upload a book or document, and the AI answers questions based on the exact context, ensuring accurate, source-based responses.
+
+2. Quiz Route <br>
+Dynamically generates a 10-question multiple-choice quiz based on the uploaded book’s content.
+
+Users answer the quiz via Streamlit, submit, and instantly receive a score (e.g., 7/10) with feedback highlighting correct and incorrect responses. 
+
+You can try the StudyBuddy here: <br>
+just upload the pdf from the top left corner <br>
+https://studybuddyforyou.streamlit.app/
+
 **How to Run**
 1. cd Backend
 2. pip install -r requirements.txt  
@@ -12,15 +26,6 @@
 8. cd Frontend <br>
 9. streamlit run app.py
 
-1. Learning Route <br>
-Retrieval-Augmented Generation (RAG) pipeline using LangChain and Gemini embeddings.
-
-Users upload a book or document, and the AI answers questions based on the exact context, ensuring accurate, source-based responses.
-
-2. Quiz Route <br>
-Dynamically generates a 10-question multiple-choice quiz based on the uploaded book’s content.
-
-Users answer the quiz via Streamlit, submit, and instantly receive a score (e.g., 7/10) with feedback highlighting correct and incorrect responses.
 
 ⚙️ Core Technologies <br>
 FastAPI — lightweight, high-performance API to manage learning & quiz endpoints.
