@@ -8,7 +8,7 @@ from langchain.chains import LLMChain, SequentialChain
 from app.utils.config import settings
 from pydantic import BaseModel, ValidationError
 
-# Configure logging
+# Configure logging 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
