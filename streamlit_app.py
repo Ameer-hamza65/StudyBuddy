@@ -3,7 +3,6 @@
 # ------------------------
 import streamlit as st
 import os
-import tempfile
 import json
 import re 
 import random
@@ -22,13 +21,10 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Set Google API key
-os.environ["GOOGLE_API_KEY"] = 'AIzaSyCmhSlMWdIkW9SsxMWkLZCAsB8p0trsZyE'
-
 # Configuration
 class Settings:
     embed_model = "models/embedding-001"
-    llm_model = "gemini-2.0-flash"
+    llm_model = "gemini-1.5-flash-latest"
     chunk_size = 2000
     chunk_overlap = 200 
 
@@ -69,18 +65,20 @@ def chunk_text(text: str, chunk_size: int, chunk_overlap: int) -> list[str]:
     return splitter.split_text(text)
 
 # ------------------------
-# RAG Service (Fixed)
+# RAG Service
 # ------------------------
 class RAGService:
-    def __init__(self):
+    def __init__(self, api_key: str):
+        self.api_key = api_key
         self.vector_store = None
         self.qa_chain = None
         self.embeddings = None
 
     async def initialize_qa_system(self, chunks: list[str]):
-        self.embeddings = GoogleGenerativeAIEmbeddings(model=settings.embed_model)
+        os.environ["GOOGLE_API_KEY"] = self.api_key
+        self.embeddings = GoogleGenerativeAIEmbeddings(model=settings.embed_model, api_key=self.api_key)
         self.vector_store = FAISS.from_texts(chunks, self.embeddings)
-        llm = ChatGoogleGenerativeAI(model=settings.llm_model, temperature=0.3)
+        llm = ChatGoogleGenerativeAI(model=settings.llm_model, temperature=0.3, api_key=self.api_key)
 
         prompt = PromptTemplate(
             template="""
@@ -112,9 +110,11 @@ class RAGService:
 # Quiz Service
 # ------------------------
 class QuizService:
-    def __init__(self):
+    def __init__(self, api_key: str):
+        self.api_key = api_key
+        os.environ["GOOGLE_API_KEY"] = self.api_key
         self.quizzes = {}
-        self.llm = ChatGoogleGenerativeAI(model=settings.llm_model, temperature=0.7)
+        self.llm = ChatGoogleGenerativeAI(model=settings.llm_model, temperature=0.7, api_key=self.api_key)
 
     def extract_json(self, text: str) -> dict:
         try:
@@ -198,7 +198,21 @@ st.set_page_config(page_title="StudyBuddy", layout="wide")
 st.title("📚 StudyBuddy")
 st.subheader("Learn from books and test your knowledge")
 
-# Initialize session state
+# Sidebar: API Key input
+with st.sidebar:
+    st.header("🔐 API Key Required")
+    api_key_input = st.text_input("Enter your Google API Key", type="password")
+    if api_key_input:
+        st.session_state.api_key = api_key_input
+
+# Initialize services once API key is provided
+if "api_key" in st.session_state:
+    if "rag_service" not in st.session_state:
+        st.session_state.rag_service = RAGService(api_key=st.session_state.api_key)
+    if "quiz_service" not in st.session_state:
+        st.session_state.quiz_service = QuizService(api_key=st.session_state.api_key)
+
+# Initialize session state variables
 for key, default in {
     "book_uploaded": False,
     "book_text": "",
@@ -207,19 +221,20 @@ for key, default in {
     "user_answers": {},
     "quiz_generated": False,
     "quiz_submitted": False,
-    "quiz_result": None,
-    "rag_service": RAGService(),
-    "quiz_service": QuizService()
+    "quiz_result": None
 }.items():
     if key not in st.session_state:
         st.session_state[key] = default
 
-# Sidebar Upload
+# Sidebar: Upload PDF
 with st.sidebar:
-    st.header("Upload Book")
+    st.header("📄 Upload Book")
     uploaded_file = st.file_uploader("Choose a PDF file", type="pdf")
+
     if uploaded_file is not None:
-        if st.button("Process Book"):
+        if "api_key" not in st.session_state:
+            st.warning("Please enter your API key before proceeding.")
+        elif st.button("Process Book"):
             with st.spinner("Processing..."):
                 try:
                     file_bytes = uploaded_file.read()
@@ -227,21 +242,21 @@ with st.sidebar:
                     chunks = chunk_text(text, settings.chunk_size, settings.chunk_overlap)
                     st.session_state.book_text = text
                     st.session_state.chunks = chunks
-                    # Async RAG initialization
                     asyncio.run(st.session_state.rag_service.initialize_qa_system(chunks))
                     st.session_state.book_uploaded = True
-                    st.success("Book processed!")
+                    st.success("Book processed successfully!")
                     st.info(f"Extracted {len(text)} characters in {len(chunks)} chunks")
                 except Exception as e:
                     st.error(f"Error: {str(e)}")
                     logger.exception("Book processing failed")
 
-# Main Interface
+# Main App Tabs
 if st.session_state.book_uploaded:
-    learn_tab, quiz_tab = st.tabs(["Learning", "Quiz"])
+    learn_tab, quiz_tab = st.tabs(["🧠 Learning", "📝 Quiz"])
+
     with learn_tab:
-        st.header("Ask Questions")
-        question = st.text_input("Ask about the book:", key="question_input")
+        st.header("Ask Questions About the Book")
+        question = st.text_input("Ask a question:")
         if question and st.button("Get Answer"):
             with st.spinner("Thinking..."):
                 try:
@@ -249,20 +264,21 @@ if st.session_state.book_uploaded:
                     st.markdown(f"**Answer:** {answer}")
                 except Exception as e:
                     st.error(f"Error: {str(e)}")
-                    logger.exception("Question answering failed")
+                    logger.exception("QA error")
 
     with quiz_tab:
         st.header("Test Your Knowledge")
+
         if not st.session_state.quiz_generated:
             if st.button("Generate Quiz"):
-                with st.spinner("Creating quiz..."):
+                with st.spinner("Generating quiz..."):
                     try:
                         quiz_data = st.session_state.quiz_service.generate_quiz(st.session_state.book_text)
                         st.session_state.quiz_data = quiz_data
                         st.session_state.quiz_generated = True
                         st.session_state.user_answers = {}
                         st.session_state.quiz_submitted = False
-                        st.success("Quiz generated!")
+                        st.success("Quiz generated successfully!")
                     except Exception as e:
                         st.error(f"Error: {str(e)}")
                         logger.exception("Quiz generation failed")
@@ -272,18 +288,16 @@ if st.session_state.book_uploaded:
             with st.form("quiz_form"):
                 st.subheader("Quiz Questions")
                 for q in quiz["questions"]:
-                    key = f"q_{q['id']}"
-                    if key not in st.session_state.user_answers:
-                        st.session_state.user_answers[key] = ""
+                    q_key = f"q_{q['id']}"
                     options = q["options"]
                     selected = st.radio(
-                        f"{q['question']}",
+                        q["question"],
                         options=list(options.keys()),
                         format_func=lambda k: f"{k}. {options[k]}",
                         key=f"radio_{q['id']}",
                         index=None
                     )
-                    st.session_state.user_answers[key] = selected if selected else ""
+                    st.session_state.user_answers[q_key] = selected if selected else ""
                 submitted = st.form_submit_button("Submit Quiz")
                 if submitted:
                     st.session_state.quiz_submitted = True
@@ -293,7 +307,8 @@ if st.session_state.book_uploaded:
                 try:
                     answers = {
                         key.split("_")[1]: val
-                        for key, val in st.session_state.user_answers.items() if key.startswith("q_")
+                        for key, val in st.session_state.user_answers.items()
+                        if key.startswith("q_")
                     }
                     result = st.session_state.quiz_service.evaluate_quiz(
                         st.session_state.quiz_data["quiz_id"], answers
@@ -319,3 +334,4 @@ if st.session_state.book_uploaded:
 
 else:
     st.info("📘 Please upload a book PDF to get started.")
+ 
