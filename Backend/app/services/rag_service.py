@@ -12,7 +12,7 @@ class RAGService:
             model=settings.embed_model
         )
 
-    def initialize_qa_system(self, chunks: list[str]):
+    async def initialize_qa_system(self, chunks: list[str]):
         """Initialize vector store and QA system"""
         self.vector_store = Chroma.from_texts(
             chunks, 
